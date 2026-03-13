@@ -5,7 +5,13 @@ export const saveBill = async (billData, items) => {
   const db = await getDatabase();
 
   // Generate bill number
-  const billNumber = 'BILL-' + Date.now().toString().slice(-6);
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const billNumber = `${yy}-${mm}-${dd}/${hh}:${min}`;
 
   // Insert bill
   const result = await db.runAsync(

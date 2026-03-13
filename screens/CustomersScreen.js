@@ -1,113 +1,54 @@
-import { useState, useEffect } from 'react';
-
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   TextInput,
-  Modal,
   Alert,
   StyleSheet,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   getAllCustomers,
-  addCustomer,
-  updateCustomer,
   deleteCustomer,
-  searchCustomers,
-  checkPhoneExists
 } from '../database/customerQueries';
 
-export default function CustomersScreen() {
+export default function CustomersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [customers, setCustomers] = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState(null);
 
-  // Form fields
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-
-  useEffect(() => {
-    loadCustomers();
-  }, []);
+  // Reload every time screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadCustomers();
+    }, [])
+  );
 
   const loadCustomers = async () => {
     setLoading(true);
     const data = await getAllCustomers();
+    setAllCustomers(data);
     setCustomers(data);
     setLoading(false);
   };
 
-  const handleSearch = async (text) => {
+  const handleSearch = (text) => {
     setSearchQuery(text);
     if (text.trim() === '') {
-      loadCustomers();
+      setCustomers(allCustomers);
     } else {
-      const results = await searchCustomers(text);
-      setCustomers(results);
-    }
-  };
-
-  const openAddModal = () => {
-    setEditingCustomer(null);
-    setName('');
-    setPhone('');
-    setAddress('');
-    setModalVisible(true);
-  };
-
-  const openEditModal = (customer) => {
-    setEditingCustomer(customer);
-    setName(customer.name);
-    setPhone(customer.phone || '');
-    setAddress(customer.address || '');
-    setModalVisible(true);
-  };
-
-  const handleSave = async () => {
-    // Validate name
-    if (!name.trim()) {
-      Alert.alert('Error', 'Please enter customer name');
-      return;
-    }
-    if (name.trim().length < 3) {
-      Alert.alert('Error', 'Name must be at least 3 characters');
-      return;
-    }
-
-    // Validate phone if entered
-    if (phone.trim()) {
-      if (phone.trim().length !== 10 || isNaN(phone.trim())) {
-        Alert.alert('Error', 'Phone number must be exactly 10 digits');
-        return;
-      }
-
-      // Check duplicate phone
-      const phoneExists = await checkPhoneExists(
-        phone.trim(),
-        editingCustomer ? editingCustomer.id : null
+      const filtered = allCustomers.filter(c =>
+        c.name.toLowerCase().includes(text.toLowerCase()) ||
+        (c.phone && c.phone.includes(text))
       );
-      if (phoneExists) {
-        Alert.alert('Error', 'This phone number is already registered to another customer');
-        return;
-      }
+      setCustomers(filtered);
     }
-
-    if (editingCustomer) {
-      await updateCustomer(editingCustomer.id, name.trim(), phone.trim(), address.trim());
-    } else {
-      await addCustomer(name.trim(), phone.trim(), address.trim());
-    }
-
-    setModalVisible(false);
-    loadCustomers();
   };
 
   const handleDelete = (customer) => {
@@ -130,7 +71,6 @@ export default function CustomersScreen() {
 
   const renderCustomer = ({ item }) => (
     <View style={styles.customerCard}>
-      {/* Avatar Circle with first letter */}
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
           {item.name.charAt(0).toUpperCase()}
@@ -150,7 +90,7 @@ export default function CustomersScreen() {
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.editBtn}
-          onPress={() => openEditModal(item)}
+          onPress={() => navigation.navigate('AddCustomer', { customer: item })}
         >
           <Text style={styles.editBtnText}>Edit</Text>
         </TouchableOpacity>
@@ -194,58 +134,12 @@ export default function CustomersScreen() {
       )}
 
       {/* Add Button */}
-      <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+      <TouchableOpacity
+        style={[styles.addButton, { bottom: insets.bottom + 24 }]}
+        onPress={() => navigation.navigate('AddCustomer')}
+      >
         <Text style={styles.addButtonText}>+ Add Customer</Text>
       </TouchableOpacity>
-
-      {/* Add/Edit Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>
-                {editingCustomer ? 'Edit Customer' : 'Add Customer'}
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Customer Name *"
-                placeholderTextColor="#9CA3AF"
-                value={name}
-                onChangeText={setName}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Phone Number"
-                placeholderTextColor="#9CA3AF"
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Address"
-                placeholderTextColor="#9CA3AF"
-                value={address}
-                onChangeText={setAddress}
-                multiline
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-      </Modal>
 
     </View>
   );
@@ -347,7 +241,6 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    bottom: 24,
     left: 16,
     right: 16,
     backgroundColor: '#2563EB',
@@ -359,63 +252,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    marginBottom: 12,
-    color: '#111827'
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  cancelBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    color: '#6B7280',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  saveBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#2563EB',
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
   },
 });

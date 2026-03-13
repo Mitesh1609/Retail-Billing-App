@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getDatabase } from './database/db';
@@ -11,8 +12,31 @@ import BillingScreen from './screens/BillingScreen';
 import ProductsScreen from './screens/ProductsScreen';
 import CustomersScreen from './screens/CustomersScreen';
 import BillsScreen from './screens/BillsScreen';
+import AddProductScreen from './screens/AddProductScreen';
+import AddCustomerScreen from './screens/AddCustomerScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+// Defined OUTSIDE App component — important!
+function ProductsStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProductsList" component={ProductsScreen} />
+      <Stack.Screen name="AddProduct" component={AddProductScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function CustomersStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="CustomersList" component={CustomersScreen} />
+      <Stack.Screen name="AddCustomer" component={AddCustomerScreen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   const [dbReady, setDbReady] = useState(false);
@@ -30,7 +54,6 @@ export default function App() {
       });
   }, []);
 
-  // Show error screen if DB fails
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -54,43 +77,71 @@ export default function App() {
       <NavigationContainer>
         <Tab.Navigator
           screenOptions={({ route }) => ({
+            tabBarHideOnKeyboard: true,
             headerShown: false,
-            tabBarActiveTintColor: '#2563EB',
-            tabBarInactiveTintColor: '#9CA3AF',
+            tabBarActiveTintColor: "#2563EB",
+            tabBarInactiveTintColor: "#9CA3AF",
             tabBarStyle: {
-              backgroundColor: '#fff',
+              backgroundColor: "#fff",
               borderTopWidth: 1,
-              borderTopColor: '#E5E7EB',
+              borderTopColor: "#E5E7EB",
               paddingBottom: 6,
               paddingTop: 6,
               height: 60,
             },
             tabBarLabelStyle: {
               fontSize: 11,
-              fontWeight: '600',
+              fontWeight: "600",
             },
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
-              if (route.name === 'Dashboard') {
-                iconName = focused ? 'home' : 'home-outline';
-              } else if (route.name === 'NewBill') {
-                iconName = focused ? 'add-circle' : 'add-circle-outline';
-              } else if (route.name === 'Products') {
-                iconName = focused ? 'cube' : 'cube-outline';
-              } else if (route.name === 'Customers') {
-                iconName = focused ? 'people' : 'people-outline';
-              } else if (route.name === 'Bills') {
-                iconName = focused ? 'receipt' : 'receipt-outline';
+              if (route.name === "Dashboard") {
+                iconName = focused ? "home" : "home-outline";
+              } else if (route.name === "NewBill") {
+                iconName = focused ? "add-circle" : "add-circle-outline";
+              } else if (route.name === "Products") {
+                iconName = focused ? "cube" : "cube-outline";
+              } else if (route.name === "Customers") {
+                iconName = focused ? "people" : "people-outline";
+              } else if (route.name === "Bills") {
+                iconName = focused ? "receipt" : "receipt-outline";
+              } else if (route.name === 'Settings') {
+                iconName = focused ? 'settings' : 'settings-outline';
               }
               return <Ionicons name={iconName} size={size} color={color} />;
             },
           })}
         >
-          <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Dashboard' }} />
-          <Tab.Screen name="NewBill" component={BillingScreen} options={{ tabBarLabel: 'New Bill' }} />
-          <Tab.Screen name="Products" component={ProductsScreen} options={{ tabBarLabel: 'Products' }} />
-          <Tab.Screen name="Customers" component={CustomersScreen} options={{ tabBarLabel: 'Customers' }} />
-          <Tab.Screen name="Bills" component={BillsScreen} options={{ tabBarLabel: 'Bills' }} />
+          <Tab.Screen
+            name="Dashboard"
+            component={DashboardScreen}
+            options={{ tabBarLabel: "Dashboard" }}
+          />
+          <Tab.Screen
+            name="NewBill"
+            component={BillingScreen}
+            options={{ tabBarLabel: "New Bill" }}
+          />
+          <Tab.Screen
+            name="Products"
+            component={ProductsStack}
+            options={{ tabBarLabel: "Products" }}
+          />
+          <Tab.Screen
+            name="Customers"
+            component={CustomersStack}
+            options={{ tabBarLabel: "Customers" }}
+          />
+          <Tab.Screen
+            name="Bills"
+            component={BillsScreen}
+            options={{ tabBarLabel: "Bills" }}
+          />
+          <Tab.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ tabBarLabel: "Settings" }}
+          />
         </Tab.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

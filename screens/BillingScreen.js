@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import PrinterModal from '../components/PrinterModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllProducts } from '../database/productQueries';
 import { getAllCustomers } from '../database/customerQueries';
@@ -45,6 +46,9 @@ export default function BillingScreen() {
 
   const [allProducts, setAllProducts] = useState([]);
   const [allCustomers, setAllCustomers] = useState([]);
+
+  const [printerModalVisible, setPrinterModalVisible] = useState(false);
+  const [currentBillData, setCurrentBillData] = useState(null);
 
   // Load data on screen open
   useEffect(() => {
@@ -150,31 +154,37 @@ export default function BillingScreen() {
         paymentMethod,
       };
 
-      // Save bill to database
+      // Save bill to DB
       const billNumber = await saveBill(billData, cart);
 
-      // Ask user what to do next
+      // Prepare bill data for printing
+      const printData = {
+        billNumber: billNumber,
+        customerName: selectedCustomer ? selectedCustomer.name : 'Walk-in Customer',
+        items: cart,
+        totalAmount: totalAmount,
+        discount: discountAmount,
+        finalAmount: finalAmount,
+        paymentMethod: paymentMethod,
+        date: new Date().toLocaleDateString('en-IN'),
+      };
+
+      setCurrentBillData(printData);
+
       Alert.alert(
         '✅ Bill Generated!',
-        `Bill ${billNumber}\nAmount: ${formatCurrency(finalAmount)}`,
+        `Bill ${billNumber} created successfully!`,
         [
           {
-            text: '📤 Share PDF',
-            onPress: async () => {
-              await generateAndSharePDF(
-                billNumber,
-                billData.customerName,
-                cart,
-                totalAmount,
-                discountAmount,
-                finalAmount,
-                paymentMethod
-              );
-              resetBill();
-            },
+            text: 'Print Bill',
+            onPress: () => setPrinterModalVisible(true),
           },
           {
-            text: '🧾 New Bill',
+            text: 'Share PDF',
+            onPress: () => generateAndSharePDF(printData),
+          },
+          {
+            text: 'New Bill',
             onPress: resetBill,
           },
         ]
@@ -412,6 +422,14 @@ export default function BillingScreen() {
         </View>
       </Modal>
 
+      <PrinterModal
+             visible={printerModalVisible}
+             onClose={() => {
+               setPrinterModalVisible(false);
+               resetBill();
+             }}
+             billData={currentBillData}
+          />
     </View>
   );
 }
