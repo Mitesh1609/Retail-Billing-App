@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getAllBills, getBillItems } from '../database/billQueries';
 import { generateAndSharePDF } from '../utils/pdfGenerator';
 import { formatCurrency } from '../utils/formatters';
+import PrinterModal from '../components/PrinterModal';
 
 export default function BillsScreen() {
   const insets = useSafeAreaInsets();
@@ -21,6 +22,7 @@ export default function BillsScreen() {
   const [billItems, setBillItems] = useState([]);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [printerModalVisible, setPrinterModalVisible] = useState(false);
 
   useEffect(() => {
     loadBills();
@@ -53,6 +55,26 @@ export default function BillsScreen() {
       selectedBill.final_amount,
       selectedBill.payment_method
     );
+  };
+
+  const handlePrint = () => {
+    if (!selectedBill) return;
+    setDetailModalVisible(false);
+    setPrinterModalVisible(true);
+  };
+
+  const getPrintBillData = () => {
+    if (!selectedBill) return null;
+    return {
+      billNumber: selectedBill.bill_number,
+      customerName: selectedBill.customer_name || 'Walk-in Customer',
+      items: billItems,
+      totalAmount: selectedBill.total_amount,
+      discount: selectedBill.discount,
+      finalAmount: selectedBill.final_amount,
+      paymentMethod: selectedBill.payment_method,
+      date: formatDate(selectedBill.created_at),
+    };
   };
 
   const formatDate = (dateString) => {
@@ -219,17 +241,31 @@ export default function BillsScreen() {
               </View>
             </View>
 
-            {/* Share Button */}
-            <TouchableOpacity
-              style={styles.shareBtn}
-              onPress={handleReshare}
-            >
-              <Text style={styles.shareBtnText}>📤 Share PDF</Text>
-            </TouchableOpacity>
+            {/* Action Buttons */}
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={styles.printBtn}
+                onPress={handlePrint}
+              >
+                <Text style={styles.printBtnText}>🖨️ Print Bill</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.shareBtn}
+                onPress={handleReshare}
+              >
+                <Text style={styles.shareBtnText}>📤 Share PDF</Text>
+              </TouchableOpacity>
+            </View>
 
           </View>
         </View>
       </Modal>
+
+      <PrinterModal
+        visible={printerModalVisible}
+        onClose={() => setPrinterModalVisible(false)}
+        billData={getPrintBillData()}
+      />
 
     </View>
   );
@@ -442,14 +478,33 @@ const styles = StyleSheet.create({
     color: '#2563EB',
   },
   shareBtn: {
+    flex: 1,
     backgroundColor: '#2563EB',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 16,
   },
   shareBtnText: {
     color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  printBtn: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  printBtnText: {
+    color: '#374151',
     fontSize: 15,
     fontWeight: '700',
   },
