@@ -39,7 +39,8 @@
     "plugins": [
       "expo-sqlite",
       "expo-font",
-      "expo-document-picker"
+      "expo-document-picker",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

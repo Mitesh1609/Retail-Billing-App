@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addProduct, updateProduct } from '../database/productQueries';
+import { syncProducts } from '../utils/api';
+import { getAllProducts } from '../database/productQueries';
 
 export default function AddProductScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -58,8 +60,15 @@ export default function AddProductScreen({ navigation, route }) {
           category.trim(),
           unit.trim()
         );
-        Alert.alert('Success', 'Product updated successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert('Success', 'Product saved!', [
+          {
+            text: 'OK', onPress: async () => {
+              // Sync to server
+              const products = await getAllProducts();
+              await syncProducts(products, global.pushToken);
+              navigation.goBack();
+            }
+          },
         ]);
       } else {
         await addProduct(

@@ -8,10 +8,35 @@ const getNativeBluetoothModules = () => {
 };
 
 const ensureBluetoothModules = () => {
-  const { BluetoothManager, BluetoothEscposPrinter } =
-    getNativeBluetoothModules();
+  let { BluetoothManager, BluetoothEscposPrinter } = getNativeBluetoothModules();
 
+  // FALLBACK: Mock implementation for development/emulators
   if (!BluetoothManager || !BluetoothEscposPrinter) {
+    if (__DEV__) {
+        console.warn('⚠️ Bluetooth native modules not found. Using MOCK PRINTER for debugging.');
+        
+        // Mock BluetoothManager
+        if (!BluetoothManager) {
+            BluetoothManager = {
+                checkBluetoothEnabled: async () => true,
+                enableBluetooth: async () => true,
+                scanDevices: async () => JSON.stringify({ paired: [{ name: 'MOCK_PRINTER_58mm', address: '00:11:22:33:44:55' }] }),
+                connect: async (addr) => { console.log(`[MOCK] Connected to printer at ${addr}`); return true; },
+            };
+        }
+
+        // Mock BluetoothEscposPrinter
+        if (!BluetoothEscposPrinter) {
+            BluetoothEscposPrinter = {
+                ALIGN: { LEFT: 0, CENTER: 1, RIGHT: 2 },
+                printerAlign: async (align) => console.log(`[PRINT_ALIGN] ${align === 1 ? 'CENTER' : align === 2 ? 'RIGHT' : 'LEFT'}`),
+                printText: async (text) => console.log(`[PRINT_TEXT] ${text.replace('\n', '')}`),
+            };
+        }
+        
+        return { BluetoothManager, BluetoothEscposPrinter };
+    }
+
     const error = new Error(
       'Bluetooth printer native modules are not available. Use a dev build or a custom native build.'
     );

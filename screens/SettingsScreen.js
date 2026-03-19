@@ -13,6 +13,7 @@ import { exportData, importData } from '../utils/exportImport';
 import { getAllProducts } from '../database/productQueries';
 import { getAllCustomers } from '../database/customerQueries';
 import { getAllBills } from '../database/billQueries';
+import { syncProducts } from '../utils/api';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -124,6 +125,40 @@ export default function SettingsScreen() {
     }
   };
 
+  // ─── SYNC PRODUCTS ────────────────────────
+  const handleSyncProducts = async () => {
+    Alert.alert(
+      '🔄 Sync Products',
+      'This will update your online chatbot with the current local product list. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sync Now',
+          onPress: async () => {
+            setLoading(true);
+            setLoadingMsg('Syncing products with online bot...');
+            try {
+              const products = await getAllProducts();
+              const result = await syncProducts(products, global.pushToken);
+              setLoading(false);
+              if (result) {
+                Alert.alert(
+                  '✅ Sync Successful',
+                  `Successfully synced ${products.length} products to the online chatbot.`
+                );
+              } else {
+                Alert.alert('❌ Sync Failed', 'Could not reach the server. Please check your internet connection.');
+              }
+            } catch (error) {
+              setLoading(false);
+              Alert.alert('❌ Sync Error', error.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
@@ -185,6 +220,22 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
 
+        </View>
+
+        {/* Online Services Section */}
+        <Text style={styles.sectionTitle}>🌐 Online Services</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.syncBtn}
+            onPress={handleSyncProducts}
+            disabled={loading}
+          >
+            <Text style={styles.syncIcon}>🔄</Text>
+            <View style={styles.btnTextGroup}>
+              <Text style={styles.btnTitle}>Sync Products</Text>
+              <Text style={styles.btnSubtitle}>Update online bot inventory</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Info */}
@@ -311,6 +362,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   importIcon: {
+    fontSize: 28,
+  },
+  syncBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 14,
+  },
+  syncIcon: {
     fontSize: 28,
   },
   btnTextGroup: {

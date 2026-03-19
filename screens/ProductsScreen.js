@@ -10,9 +10,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getAllProducts, deleteProduct, searchProducts } from '../database/productQueries';
+import { getAllProducts, deleteProduct } from '../database/productQueries';
 import { formatCurrency } from '../utils/formatters';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { syncProducts } from '../utils/api';
 
 export default function ProductsScreen({ navigation }) {
   const [products, setProducts] = useState([]);
@@ -35,6 +36,7 @@ export default function ProductsScreen({ navigation }) {
     setAllProducts(data);
     setProducts(data);
     setLoading(false);
+    return data;
   };
 
   const handleSearch = (text) => {
@@ -60,7 +62,8 @@ export default function ProductsScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             await deleteProduct(product.id);
-            loadProducts();
+            const products = await loadProducts();
+            await syncProducts(products, global.pushToken);
           },
         },
       ]
